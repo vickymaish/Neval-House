@@ -26,10 +26,10 @@ export const properties = [
     id: "two-bedroom",
     name: "Nevel 2-Bedroom Apartment",
     bedrooms: "2 bedrooms",
-    status: "Coming soon",
-    description: "A second Nevel apartment is in the works. Photos and booking details will be added when they are ready.",
+    status: "Available to enquire",
+    description: "A two-bedroom apartment at Nevel. Contact the host to enquire about dates, rates, and apartment details.",
     image: null,
-    imageAlt: "Photos of the two-bedroom apartment are coming soon",
+    imageAlt: "Nevel two-bedroom apartment",
     photos: [],
   },
 ] as const;
@@ -40,19 +40,19 @@ export const property = {
   location: "Eldoret, Kenya",
   seo: {
     title: "Nevel Apartments | Eldoret, Kenya",
-    description: "Explore Nevel's three-bedroom apartment in Eldoret and enquire about an upcoming two-bedroom apartment.",
+    description: "Explore Nevel's two- and three-bedroom apartments in Eldoret and enquire about availability.",
   },
   hero: {
     image: "/images/hero-image.jpeg",
     imageAlt: "Living space at the Nevel three-bedroom apartment",
     eyebrow: "ELDORET · KENYA",
     title: "A considered stay in the Home of Champions.",
-    description: "Discover the Nevel three-bedroom apartment, with a second two-bedroom home coming soon.",
+    description: "Discover Nevel's three-bedroom apartment and enquire about the two-bedroom apartment.",
   },
   house: {
     eyebrow: "OUR APARTMENTS",
     title: "Two homes, each with room to settle.",
-    description: "Explore the three-bedroom apartment and see what is coming next at Nevel.",
+    description: "Explore the three-bedroom apartment and enquire about the two-bedroom apartment at Nevel.",
   },
   locationDescription: "Nevel Apartment is just off the tarmac road opposite Eldoret National Polytechnic. At the end of the tarmac, take the right turn by the one-storey building; Nevel is about 50 metres ahead on your right.",
   amenities: [
@@ -73,7 +73,7 @@ export const property = {
     { question: "What time is check-out?", answer: "Check-out is at 12 noon. A little extra time may be possible by arrangement with the host." },
     { question: "What is the cancellation policy?", answer: "Cancellations are non-refundable." },
     { question: "Are there house rules?", answer: "Please take care of the apartment and keep noise considerate. Guests are responsible for breakages or damage during their stay." },
-    { question: "Is the two-bedroom apartment available?", answer: "The two-bedroom apartment is coming soon. Photos and booking details will be shared when available." },
+    { question: "Is the two-bedroom apartment available?", answer: "Yes. The two-bedroom apartment is available to enquire about. Contact the host for dates, rates, and details." },
   ],
   mapEmbedUrl: "",
 };

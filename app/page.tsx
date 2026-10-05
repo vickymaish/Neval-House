@@ -4,8 +4,10 @@ import { BookingLink, FAQ, FloatingWhatsApp, HouseGrid, Navigation, PhotoGallery
 import Booking from "@/components/sections/Booking";
 import { siteConfig } from "@/data/site";
 import { buildMailtoLink, buildWhatsAppLink } from "@/lib/contact";
+import { getPublicSettings } from "@/lib/public-settings";
 
-export default function Home() {
+export default async function Home() {
+  const settings = await getPublicSettings();
   return <main id="top">
     <Navigation />
 
@@ -15,9 +17,9 @@ export default function Home() {
       <div className="wrap relative z-10 pb-24 pt-32 md:pb-10">
         <Reveal className="max-w-[760px]">
           <p className="eyebrow mb-6 text-white/75">{property.hero.eyebrow}</p>
-          <h1 className="serif max-w-[740px] text-[clamp(3.25rem,7vw,6.5rem)] leading-[.98]">{property.hero.title}</h1>
-          <p className="mt-7 max-w-[440px] text-[14px] leading-7 text-white/80 md:text-base">{property.hero.description}</p>
-          <div className="mt-9 flex flex-wrap gap-3"><BookingLink className="button button-light">Book now <span className="ml-4" aria-hidden="true">↗</span></BookingLink><WhatsAppLink>Chat on WhatsApp</WhatsAppLink></div>
+          <h1 className="serif max-w-[740px] text-[clamp(3.25rem,7vw,6.5rem)] leading-[.98]">{settings.tagline}</h1>
+          <p className="mt-7 max-w-[440px] text-[14px] leading-7 text-white/80 md:text-base">{settings.welcome_paragraph}</p>
+          <div className="mt-9 flex flex-wrap gap-3"><BookingLink className="button button-light">Book now <span className="ml-4" aria-hidden="true">↗</span></BookingLink><WhatsAppLink whatsappNumber={settings.whatsapp_number}>Chat on WhatsApp</WhatsAppLink></div>
         </Reveal>
       </div>
       <div className="absolute bottom-8 right-6 hidden items-center gap-3 text-[9px] uppercase tracking-[.18em] text-white/65 md:flex"><span className="h-px w-12 bg-white/60" />A place to feel at home</div>
@@ -58,15 +60,16 @@ export default function Home() {
       <FAQ />
     </section>
 
-    <Booking />
+    <Booking settings={settings} />
 
     <footer className="wrap py-10 md:py-12">
       <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between"><div><a href="#top" className="serif text-[27px]">{property.name}</a><p className="mt-2 text-xs tracking-wide text-[#73736b]">{property.location}</p></div><div className="flex flex-wrap gap-x-6 gap-y-3 text-[10px] uppercase tracking-[.13em]">
-        <a className="hover:text-[#66715b]" href={buildWhatsAppLink()} target="_blank" rel="noopener noreferrer">WhatsApp {siteConfig.whatsappDisplay}</a>
+        <a className="hover:text-[#66715b]" href={buildWhatsAppLink(undefined, settings.whatsapp_number)} target="_blank" rel="noopener noreferrer">WhatsApp +{settings.whatsapp_number}</a>
         <a className="hover:text-[#66715b]" href={buildMailtoLink()}>{siteConfig.ownerEmail}</a>
       </div></div>
       <div className="mt-8 flex justify-between border-t border-[#dedbd2] pt-5 text-[10px] tracking-wide text-[#88877e]"><span>© {new Date().getFullYear()} {property.name}</span><span>ELDORET · KENYA</span></div>
+      <div className="mt-4 text-left"><a href="/admin/login" className="min-h-11 inline-flex items-center px-2 text-[10px] tracking-wide text-[#88877e] underline-offset-4 hover:text-[#66715b] hover:underline">Owner sign in</a></div>
     </footer>
-    <FloatingWhatsApp />
+    <FloatingWhatsApp whatsappNumber={settings.whatsapp_number} />
   </main>;
 }

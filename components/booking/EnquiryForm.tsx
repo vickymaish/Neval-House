@@ -8,7 +8,7 @@ import { siteConfig } from "@/data/site";
 import { buildMailtoLink, buildWhatsAppLink } from "@/lib/contact";
 import { calcNights, enquirySchema, normalizeKenyanPhone, type EnquiryValues } from "@/lib/validation";
 
-type SentEnquiry = EnquiryValues & { nights: number; estimatedTotal: number };
+type SentEnquiry = EnquiryValues & { nights: number };
 type FormStatus = "idle" | "sending" | "success" | "error";
 const inputClass = "min-h-12 w-full rounded-md border border-[#dedbd2] bg-white/60 px-3 text-base text-[#24251f] outline-none transition focus:border-[#66715b] focus:ring-2 focus:ring-[#66715b]/20";
 
@@ -25,7 +25,7 @@ function Field({ id, label, error, hint, children }: { id: string; label: string
 function summaryText(data: SentEnquiry) {
   return [
     `Hello, I'm ${data.name}.`,
-    `I'd like to enquire about ${data.nights} ${data.nights === 1 ? "night" : "nights"} at ${siteConfig.propertyName}.`,
+    `I'd like to enquire about ${data.nights} ${data.nights === 1 ? "night" : "nights"} at ${data.propertyId === "two-bedroom" ? "Nevel 2-Bedroom Apartment" : "Nevel 3-Bedroom Apartment"}.`,
     `Check-in: ${data.checkIn}; check-out: ${data.checkOut}; guests: ${data.guests}.`,
     `Phone: ${normalizeKenyanPhone(data.phone) ?? data.phone}; email: ${data.email}.`,
     data.message ? `Message: ${data.message}` : "",
@@ -39,13 +39,12 @@ export default function EnquiryForm() {
   const confirmationRef = useRef<HTMLDivElement>(null);
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<EnquiryValues>({
     resolver: zodResolver(enquirySchema),
-    defaultValues: { name: "", phone: "", email: "", checkIn: "", checkOut: "", guests: "1", message: "", botcheck: "" },
+    defaultValues: { name: "", phone: "", email: "", propertyId: "three-bedroom", checkIn: "", checkOut: "", guests: "1", message: "", botcheck: "" },
   });
   const [checkIn, checkOut, message = ""] = watch(["checkIn", "checkOut", "message"]);
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const checkOutMin = checkIn && !Number.isNaN(parseISO(checkIn).getTime()) ? format(addDays(parseISO(checkIn), 1), "yyyy-MM-dd") : todayStr;
   const nights = calcNights(checkIn, checkOut);
-  const estimate = nights * siteConfig.pricePerNightKES;
 
   useEffect(() => {
     if (status === "success") confirmationRef.current?.focus();
@@ -54,7 +53,7 @@ export default function EnquiryForm() {
   async function submit(values: EnquiryValues) {
     setNotice("");
     const countNights = calcNights(values.checkIn, values.checkOut);
-    const submission: SentEnquiry = { ...values, nights: countNights, estimatedTotal: countNights * siteConfig.pricePerNightKES };
+    const submission: SentEnquiry = { ...values, nights: countNights };
     if (values.botcheck?.trim()) {
       setSent(submission);
       setStatus("success");
@@ -98,7 +97,7 @@ export default function EnquiryForm() {
           check_out: values.checkOut,
           nights: countNights,
           guests: values.guests,
-          estimated_total_kes: submission.estimatedTotal,
+          property: values.propertyId === "two-bedroom" ? "Nevel 2-Bedroom Apartment" : "Nevel 3-Bedroom Apartment",
           message: values.message ?? "",
           botcheck: values.botcheck ?? "",
         }),
@@ -120,7 +119,7 @@ export default function EnquiryForm() {
   if (status === "success" && sent) return <div ref={confirmationRef} tabIndex={-1} role="status" aria-live="polite" className="rounded-lg border border-[#dedbd2] bg-white/50 p-7 outline-none focus:ring-2 focus:ring-[#66715b]">
     <p className="eyebrow text-[#66715b]">ENQUIRY SENT</p>
     <h3 className="serif mt-4 text-3xl">Thank you, {firstName}.</h3>
-    <p className="mt-3 text-sm leading-7">Your enquiry has been sent. We&apos;ll reply to {sent.email} within a few hours.</p>
+    <p className="mt-3 text-sm leading-7">Your enquiry has been sent. The host can reply to {sent.email} with availability and rate details.</p>
     <div className="mt-6 flex flex-wrap items-center gap-5">
       <a className="button button-dark" href={buildWhatsAppLink(details)} target="_blank" rel="noopener noreferrer">Continue on WhatsApp</a>
       <button className="min-h-11 text-sm underline underline-offset-4" onClick={() => { reset(); setSent(null); setNotice(""); setStatus("idle"); }}>Send another enquiry</button>
@@ -137,6 +136,7 @@ export default function EnquiryForm() {
       </div>
     </div>}
     <Field id="name" label="Full name" error={errors.name}><input id="name" autoComplete="name" className={inputClass} aria-invalid={!!errors.name} aria-describedby={errors.name ? "name-error" : undefined} {...register("name")} /></Field>
+    <Field id="propertyId" label="Apartment" error={errors.propertyId}><select id="propertyId" className={inputClass} aria-invalid={!!errors.propertyId} aria-describedby={errors.propertyId ? "propertyId-error" : undefined} {...register("propertyId")}><option value="three-bedroom">Nevel 3-Bedroom Apartment</option><option value="two-bedroom">Nevel 2-Bedroom Apartment (coming soon)</option></select></Field>
     <div className="grid gap-6 sm:grid-cols-2">
       <Field id="phone" label="Phone / WhatsApp" hint="e.g. 0712 345 678" error={errors.phone}><input id="phone" type="tel" inputMode="tel" autoComplete="tel" className={inputClass} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? "phone-error" : undefined} {...register("phone")} /></Field>
       <Field id="email" label="Email" error={errors.email}><input id="email" type="email" autoComplete="email" className={inputClass} aria-invalid={!!errors.email} aria-describedby={errors.email ? "email-error" : undefined} {...register("email")} /></Field>
@@ -144,9 +144,9 @@ export default function EnquiryForm() {
     <div className="grid gap-6 sm:grid-cols-3">
       <Field id="checkIn" label="Check-in" error={errors.checkIn}><input id="checkIn" type="date" min={todayStr} className={inputClass} aria-invalid={!!errors.checkIn} aria-describedby={errors.checkIn ? "checkIn-error" : undefined} {...register("checkIn")} /></Field>
       <Field id="checkOut" label="Check-out" error={errors.checkOut}><input id="checkOut" type="date" min={checkOutMin} className={inputClass} aria-invalid={!!errors.checkOut} aria-describedby={errors.checkOut ? "checkOut-error" : undefined} {...register("checkOut")} /></Field>
-      <Field id="guests" label="Guests" error={errors.guests}><select id="guests" className={inputClass} aria-invalid={!!errors.guests} aria-describedby={errors.guests ? "guests-error" : undefined} {...register("guests")}>{Array.from({ length: siteConfig.maxGuests }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count} {count === 1 ? "guest" : "guests"}</option>)}</select></Field>
+      <Field id="guests" label="Number of guests" error={errors.guests}><input id="guests" type="number" min="1" step="1" className={inputClass} aria-invalid={!!errors.guests} aria-describedby={errors.guests ? "guests-error" : undefined} {...register("guests")} /></Field>
     </div>
-    {nights > 0 && <p className="rounded-lg bg-black/5 px-4 py-3 text-sm">{nights} {nights === 1 ? "night" : "nights"}, estimated KES {estimate.toLocaleString("en-KE")} <span className="opacity-60">(estimate only, final price confirmed by host)</span></p>}
+    {nights > 0 && <p className="rounded-lg bg-black/5 px-4 py-3 text-sm">Enquiring for {nights} {nights === 1 ? "night" : "nights"}. Nightly rate will be confirmed by the host.</p>}
     <Field id="message" label="Message (optional)" hint={`${message.length}/600`} error={errors.message}><textarea id="message" rows={4} className={`${inputClass} py-3`} aria-invalid={!!errors.message} aria-describedby={errors.message ? "message-error" : undefined} {...register("message")} /></Field>
     <input type="text" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 opacity-0" {...register("botcheck")} />
     <button type="submit" disabled={status === "sending"} className="button button-dark w-full disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit">{status === "sending" ? "Sending..." : "Send enquiry"}</button>

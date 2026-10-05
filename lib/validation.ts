@@ -1,6 +1,5 @@
 import { differenceInCalendarDays, isValid, parseISO, startOfToday } from "date-fns";
 import { z } from "zod";
-import { siteConfig } from "@/data/site";
 
 export function normalizeKenyanPhone(input: string): string | null {
   const cleaned = input.replace(/[\s\-()]/g, "").replace(/^\+/, "");
@@ -21,12 +20,10 @@ export const enquirySchema = z.object({
   name: z.string().trim().min(2, "Please enter your full name").max(80, "Name is too long"),
   phone: z.string().trim().refine((value) => normalizeKenyanPhone(value) !== null, "Enter a valid Kenyan number, e.g. 0712 345 678"),
   email: z.string().trim().email("Enter a valid email address"),
+  propertyId: z.enum(["three-bedroom", "two-bedroom"]),
   checkIn: z.string().min(1, "Choose a check-in date"),
   checkOut: z.string().min(1, "Choose a check-out date"),
-  guests: z.string().refine((value) => {
-    const count = Number(value);
-    return Number.isInteger(count) && count >= 1 && count <= siteConfig.maxGuests;
-  }, `Choose between 1 and ${siteConfig.maxGuests} guests`),
+  guests: z.string().trim().regex(/^[1-9]\d{0,2}$/, "Enter a valid number of guests"),
   message: z.string().max(600, "Maximum 600 characters").optional(),
   botcheck: z.string().optional(),
 }).superRefine((data, ctx) => {

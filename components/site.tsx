@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
-import { property } from "@/data/property";
+import { properties, property } from "@/data/property";
 import { buildWhatsAppLink } from "@/lib/contact";
 
 
@@ -35,19 +35,22 @@ export function Reveal({ children, className = "", delay = 0 }: { children: Reac
 }
 
 export function HouseGrid() {
-  const photos = property.photos.slice(0, 6);
-  return <div className="house-grid mt-14 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">
-    {photos.map((photo) => <a key={photo.src} href="#gallery" className="photo group block">
-      <Image src={photo.src} alt={photo.alt} width={1500} height={1000} sizes="(max-width: 767px) 50vw, 33vw" className="group-hover:scale-[1.015]" />
-    </a>)}
+  return <div className="mt-14 grid gap-6 md:grid-cols-2">
+    {properties.map((item) => <article key={item.id} className="overflow-hidden rounded-lg border border-[#dedbd2] bg-white/50">
+      <div className="relative aspect-[16/10] bg-[#e7e4dc]">
+        {item.image ? <Image src={item.image} alt={item.imageAlt} fill sizes="(max-width: 767px) 100vw, 50vw" className="object-cover" /> : <div className="flex h-full items-center justify-center"><span className="eyebrow text-[#73736b]">PHOTOS COMING SOON</span></div>}
+      </div>
+      <div className="p-6 md:p-8"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="serif text-2xl md:text-3xl">{item.name}</h3><span className="eyebrow text-[#66715b]">{item.status}</span></div><p className="mt-2 text-xs uppercase tracking-[.12em] text-[#73736b]">{item.bedrooms}</p><p className="mt-4 max-w-lg text-sm leading-7 text-[#6f7069]">{item.description}</p>{item.id === "three-bedroom" && <a href="#gallery" className="mt-5 inline-block border-b border-[#a4a296] pb-1 text-xs uppercase tracking-[.12em]">View apartment photos ↗</a>}</div>
+    </article>)}
   </div>;
 }
 
 export function PhotoGallery() {
+  const photos = properties.find((item) => item.id === "three-bedroom")?.photos ?? [];
   const [active, setActive] = useState<number | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const close = useCallback(() => setActive(null), []);
-  const move = useCallback((direction: number) => setActive((current) => current === null ? null : (current + direction + property.photos.length) % property.photos.length), []);
+  const move = useCallback((direction: number) => setActive((current) => current === null || photos.length === 0 ? null : (current + direction + photos.length) % photos.length), [photos.length]);
   useEffect(() => {
     if (active === null) return;
     const keydown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); if (event.key === "ArrowRight") move(1); if (event.key === "ArrowLeft") move(-1); };
@@ -55,11 +58,11 @@ export function PhotoGallery() {
     return () => { document.removeEventListener("keydown", keydown); document.body.style.overflow = ""; };
   }, [active, close, move]);
   return <>
-    <div className="photo-gallery mt-12 columns-2 gap-3 md:columns-3 md:gap-5">{property.photos.map((photo, i) => <button key={photo.src} aria-label={`Open image: ${photo.alt}`} onClick={() => setActive(i)} className="photo mb-3 block w-full break-inside-avoid text-left md:mb-5"><Image src={photo.src} alt={photo.alt} width={photo.src.includes("kitchen-detail") ? 1000 : photo.src.includes("apartment") ? 1280 : 1500} height={photo.src.includes("kitchen-detail") ? 1500 : photo.src.includes("apartment") ? 854 : 1000} loading="lazy" sizes="(max-width: 767px) 50vw, 33vw" /></button>)}</div>
-    <AnimatePresence>{active !== null && <motion.div className="lightbox-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true" aria-label="Photo gallery" onClick={close} onTouchStart={(e) => setTouchStart(e.touches[0].clientX)} onTouchEnd={(e) => { if (touchStart !== null && Math.abs(e.changedTouches[0].clientX - touchStart) > 45) move(e.changedTouches[0].clientX < touchStart ? 1 : -1); setTouchStart(null); }}>
+    <div className="photo-gallery mt-12 columns-2 gap-3 md:columns-3 md:gap-5">{photos.map((photo, i) => <button key={photo.src} aria-label={`Open image: ${photo.alt}`} onClick={() => setActive(i)} className="photo mb-3 block w-full break-inside-avoid text-left md:mb-5"><Image src={photo.src} alt={photo.alt} width={photo.src.includes("kitchen-detail") ? 1000 : photo.src.includes("apartment") ? 1280 : 1500} height={photo.src.includes("kitchen-detail") ? 1500 : photo.src.includes("apartment") ? 854 : 1000} loading="lazy" sizes="(max-width: 767px) 50vw, 33vw" /></button>)}</div>
+    <AnimatePresence>{active !== null && photos[active] && <motion.div className="lightbox-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true" aria-label="Photo gallery" onClick={close} onTouchStart={(e) => setTouchStart(e.touches[0].clientX)} onTouchEnd={(e) => { if (touchStart !== null && Math.abs(e.changedTouches[0].clientX - touchStart) > 45) move(e.changedTouches[0].clientX < touchStart ? 1 : -1); setTouchStart(null); }}>
       <button onClick={close} aria-label="Close gallery" className="absolute right-5 top-5 z-10 grid h-12 w-12 place-items-center text-3xl text-white">×</button>
       <button onClick={(e) => { e.stopPropagation(); move(-1); }} aria-label="Previous image" className="absolute left-2 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center text-3xl text-white md:left-8">‹</button>
-      <figure className="relative flex h-full w-full max-w-6xl flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}><div className="relative h-[78vh] w-full"><Image src={property.photos[active].src} alt={property.photos[active].alt} fill sizes="100vw" className="object-contain" priority /></div><figcaption className="mt-4 text-xs tracking-wide text-white/75">{property.photos[active].alt} <span className="ml-3">{active + 1} / {property.photos.length}</span></figcaption></figure>
+      <figure className="relative flex h-full w-full max-w-6xl flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}><div className="relative h-[78vh] w-full"><Image src={photos[active].src} alt={photos[active].alt} fill sizes="100vw" className="object-contain" priority /></div><figcaption className="mt-4 text-xs tracking-wide text-white/75">{photos[active].alt} <span className="ml-3">{active + 1} / {photos.length}</span></figcaption></figure>
       <button onClick={(e) => { e.stopPropagation(); move(1); }} aria-label="Next image" className="absolute right-2 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center text-3xl text-white md:right-8">›</button>
     </motion.div>}</AnimatePresence>
   </>;

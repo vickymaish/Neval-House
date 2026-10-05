@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+:root{--ivory:#F7F5F0;--ink:#24251f;--olive:#66715b;--line:#dedbd2}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+body{margin:0;background:var(--ivory);color:var(--ink);font-family:'Inter',Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:#d9dfce;color:var(--ink)}
+.serif{font-family:'Instrument Serif',Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:-.025em}
+.eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:600}
+.wrap{width:min(100% - 64px,1200px);margin-inline:auto}
+.section-pad{padding-block:clamp(76px,9vw,112px)}
+.photo{overflow:hidden;border-radius:8px;background:#e8e3d8}
+.photo img{display:block;width:100%;height:auto;object-fit:contain;transition:transform .7s cubic-bezier(.2,.7,.2,1)}
+.photo:hover img{transform:scale(1.015)}
+.house-grid .photo img{aspect-ratio:3/2;object-fit:cover}
+.button{min-height:50px;display:inline-flex;align-items:center;justify-content:center;padding:0 22px;border:1px solid var(--ink);font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;transition:background .2s,color .2s,border-color .2s}
+.button-dark{background:var(--ink);color:white}.button-dark:hover{background:var(--olive);border-color:var(--olive)}
+.button-light{background:var(--ivory);color:var(--ink);border-color:var(--ivory)}.button-light:hover{background:transparent;color:white}
+.button-outline{border-color:rgba(255,255,255,.65);color:white}.button-outline:hover{background:white;color:var(--ink)}
+.nav-link{position:relative;font-size:10px;letter-spacing:.11em;text-transform:uppercase}.nav-link:after{content:'';position:absolute;bottom:-6px;left:0;width:0;height:1px;background:currentColor;transition:width .25s}.nav-link:hover:after{width:100%}
+.reveal{opacity:0;transform:translateY(18px)}
+.faq-row{border-top:1px solid var(--line)}.faq-row:last-child{border-bottom:1px solid var(--line)}
+.lightbox-backdrop{background:rgba(17,18,16,.96)}
+@media(max-width:767px){.wrap{width:min(100% - 40px,1200px)}.section-pad{padding-block:72px}.house-grid{gap:10px}.photo-gallery{column-gap:10px}.photo-gallery .photo{margin-bottom:10px;border-radius:6px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition-duration:.01ms!important;animation-duration:.01ms!important}}

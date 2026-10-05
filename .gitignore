@@ -1,0 +1,16 @@
+node_modules/
+.npm-cache/
+.next/
+out/
+build/
+coverage/
+.vercel/
+.env*
+!.env.example
+WhatsApp Unknown 2026-10-04 at 21.52.08.zip
+WhatsApp Unknown 2026-10-04 at 21.52.08/
+WhatsApp Image *.jpeg
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.tsbuildinfo

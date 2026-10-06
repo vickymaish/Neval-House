@@ -20,7 +20,7 @@ export const enquirySchema = z.object({
   name: z.string().trim().min(2, "Please enter your full name").max(80, "Name is too long"),
   phone: z.string().trim().refine((value) => normalizeKenyanPhone(value) !== null, "Enter a valid Kenyan number, e.g. 0712 345 678"),
   email: z.string().trim().email("Enter a valid email address"),
-  propertyId: z.enum(["three-bedroom", "two-bedroom"]),
+  bedrooms: z.enum(["1", "2", "3"]),
   checkIn: z.string().min(1, "Choose a check-in date"),
   checkOut: z.string().min(1, "Choose a check-out date"),
   guests: z.string().trim().regex(/^[1-9]\d{0,2}$/, "Enter a valid number of guests"),

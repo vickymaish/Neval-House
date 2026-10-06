@@ -4,12 +4,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { addDays, format, parseISO } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 import { useForm, type FieldError } from "react-hook-form";
-import { siteConfig } from "@/data/site";
+import { bedroomOptions, siteConfig } from "@/data/site";
 import { buildMailtoLink, buildWhatsAppLink } from "@/lib/contact";
 import { calcNights, enquirySchema, normalizeKenyanPhone, type EnquiryValues } from "@/lib/validation";
 import { createClient } from "@/lib/supabase/client";
 
-type SentEnquiry = EnquiryValues & { nights: number };
+type SentEnquiry = EnquiryValues & { nights: number; pricePerNightKES: number; estimatedTotalKES: number };
 type FormStatus = "idle" | "sending" | "success" | "error";
 const inputClass = "min-h-12 w-full rounded-md border border-[#dedbd2] bg-white/60 px-3 text-base text-[#24251f] outline-none transition focus:border-[#66715b] focus:ring-2 focus:ring-[#66715b]/20";
 
@@ -26,25 +26,29 @@ function Field({ id, label, error, hint, children }: { id: string; label: string
 function summaryText(data: SentEnquiry) {
   return [
     `Hello, I'm ${data.name}.`,
-    `I'd like to enquire about ${data.nights} ${data.nights === 1 ? "night" : "nights"} at ${data.propertyId === "two-bedroom" ? "Nevel 2-Bedroom Apartment" : "Nevel 3-Bedroom Apartment"}.`,
-    `Check-in: ${data.checkIn}; check-out: ${data.checkOut}; guests: ${data.guests}.`,
+    `I'd like to enquire about ${data.nights} ${data.nights === 1 ? "night" : "nights"} at Nevel House C8.`,
+    `Bedrooms: ${data.bedrooms} (${data.bedrooms === "3" ? "entire house" : "bedroom option"}); check-in: ${data.checkIn}; check-out: ${data.checkOut}; guests: ${data.guests}.`,
+    `Placeholder estimate: KES ${data.pricePerNightKES.toLocaleString()} per night; KES ${data.estimatedTotalKES.toLocaleString()} total.`,
     `Phone: ${normalizeKenyanPhone(data.phone) ?? data.phone}; email: ${data.email}.`,
     data.message ? `Message: ${data.message}` : "",
   ].filter(Boolean).join("\n");
 }
 
-export default function EnquiryForm({ whatsappNumber, maxGuests = 6 }: { whatsappNumber?: string; maxGuests?: number }) {
+export default function EnquiryForm({ whatsappNumber, options = bedroomOptions }: { whatsappNumber?: string; options?: readonly { bedrooms:1|2|3; label:string; pricePerNightKES:number; maxGuests:number; description:string }[] }) {
   const [status, setStatus] = useState<FormStatus>("idle");
   const [sent, setSent] = useState<SentEnquiry | null>(null);
   const [notice, setNotice] = useState("");
   const [unavailable, setUnavailable] = useState(false);
   const [dateRanges, setDateRanges] = useState<{ start: string; end: string }[]>([]);
   const confirmationRef = useRef<HTMLDivElement>(null);
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<EnquiryValues>({
+  const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<EnquiryValues>({
     resolver: zodResolver(enquirySchema),
-    defaultValues: { name: "", phone: "", email: "", propertyId: "three-bedroom", checkIn: "", checkOut: "", guests: "1", message: "", botcheck: "" },
+    defaultValues: { name: "", phone: "", email: "", bedrooms: "3", checkIn: "", checkOut: "", guests: "1", message: "", botcheck: "" },
   });
-  const [checkIn, checkOut, message = ""] = watch(["checkIn", "checkOut", "message"]);
+  const [checkIn, checkOut, message = "", bedrooms = "3", guestCount = "1"] = watch(["checkIn", "checkOut", "message", "bedrooms", "guests"]);
+  const selectedOption = options.find((option) => option.bedrooms === Number(bedrooms)) ?? options[2]!;
+  const selectedMax = selectedOption.maxGuests;
+  const estimate = calcNights(checkIn, checkOut) * selectedOption.pricePerNightKES;
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const checkOutMin = checkIn && !Number.isNaN(parseISO(checkIn).getTime()) ? format(addDays(parseISO(checkIn), 1), "yyyy-MM-dd") : todayStr;
   const nights = calcNights(checkIn, checkOut);
@@ -64,6 +68,19 @@ export default function EnquiryForm({ whatsappNumber, maxGuests = 6 }: { whatsap
   }, []);
 
   useEffect(() => {
+    const choose = (event: Event) => {
+      const count = (event as CustomEvent<number>).detail;
+      if ([1, 2, 3].includes(count)) {
+        setValue("bedrooms", String(count) as EnquiryValues["bedrooms"]);
+        const option = options.find((item) => item.bedrooms === count) ?? options[2]!;
+        if (Number(guestCount) > option.maxGuests) setValue("guests", String(option.maxGuests));
+      }
+    };
+    window.addEventListener("nevel:bedrooms", choose);
+    return () => window.removeEventListener("nevel:bedrooms", choose);
+  }, [setValue, guestCount, options]);
+
+  useEffect(() => {
     setUnavailable(Boolean(checkIn && checkOut && dateRanges.some((range) => checkIn < range.end && range.start < checkOut)));
   }, [checkIn, checkOut, dateRanges]);
 
@@ -73,13 +90,14 @@ export default function EnquiryForm({ whatsappNumber, maxGuests = 6 }: { whatsap
 
   async function submit(values: EnquiryValues) {
     setNotice("");
-    if (Number(values.guests) > maxGuests) {
-      setNotice(`This apartment can accommodate up to ${maxGuests} guests. Please adjust the guest count or contact us.`);
+    const option = options.find((item) => item.bedrooms === Number(values.bedrooms)) ?? options[2]!;
+    if (Number(values.guests) > option.maxGuests) {
+      setNotice(`This option can accommodate up to ${option.maxGuests} guests. Please adjust the guest count or contact us.`);
       setStatus("error");
       return;
     }
     const countNights = calcNights(values.checkIn, values.checkOut);
-    const submission: SentEnquiry = { ...values, nights: countNights };
+    const submission: SentEnquiry = { ...values, nights: countNights, pricePerNightKES: option.pricePerNightKES, estimatedTotalKES: option.pricePerNightKES * countNights };
     if (values.botcheck?.trim()) {
       setSent(submission);
       setStatus("success");
@@ -101,7 +119,7 @@ export default function EnquiryForm({ whatsappNumber, maxGuests = 6 }: { whatsap
     const db = createClient();
     const databaseWrite = db.from("enquiries").insert({
       name: values.name.trim(), phone: normalizeKenyanPhone(values.phone)!, email: values.email.trim(),
-      check_in: values.checkIn, check_out: values.checkOut, guests: Number(values.guests), message: values.message?.trim() || null, status: "new",
+      check_in: values.checkIn, check_out: values.checkOut, guests: Number(values.guests), bedrooms: Number(values.bedrooms), message: values.message?.trim() || null, status: "new",
     });
     const accessKey = process.env.NEXT_PUBLIC_WEB3FORMS_KEY;
     const emailSend = (async () => {
@@ -121,7 +139,10 @@ export default function EnquiryForm({ whatsappNumber, maxGuests = 6 }: { whatsap
           check_out: values.checkOut,
           nights: countNights,
           guests: values.guests,
-          property: values.propertyId === "two-bedroom" ? "Nevel 2-Bedroom Apartment" : "Nevel 3-Bedroom Apartment",
+          bedrooms: values.bedrooms,
+          price_per_night_kes: option.pricePerNightKES,
+          estimated_total_kes: option.pricePerNightKES * countNights,
+          property: "Nevel Apartment · House C8",
           message: values.message ?? "",
           botcheck: values.botcheck ?? "",
         }),
@@ -133,8 +154,6 @@ export default function EnquiryForm({ whatsappNumber, maxGuests = 6 }: { whatsap
     const outcomes = await Promise.allSettled([databaseWrite, emailSend]);
     const databaseSucceeded = outcomes[0]?.status === "fulfilled" && !outcomes[0].value.error;
     const emailSucceeded = outcomes[1]?.status === "fulfilled";
-    if (outcomes[0]?.status === "rejected" || (outcomes[0]?.status === "fulfilled" && outcomes[0].value.error)) console.error("Supabase enquiry insert failed", outcomes[0]?.status === "rejected" ? outcomes[0].reason : outcomes[0]?.value.error);
-    if (!emailSucceeded) console.warn("Web3Forms enquiry email failed", outcomes[1]?.status === "rejected" ? outcomes[1].reason : "Unknown error");
     setSent(submission);
     if (databaseSucceeded || emailSucceeded) setStatus("success");
     else {
@@ -166,7 +185,7 @@ export default function EnquiryForm({ whatsappNumber, maxGuests = 6 }: { whatsap
       </div>
     </div>}
     <Field id="name" label="Full name" error={errors.name}><input id="name" autoComplete="name" className={inputClass} aria-invalid={!!errors.name} aria-describedby={errors.name ? "name-error" : undefined} {...register("name")} /></Field>
-    <Field id="propertyId" label="Apartment" error={errors.propertyId}><select id="propertyId" className={inputClass} aria-invalid={!!errors.propertyId} aria-describedby={errors.propertyId ? "propertyId-error" : undefined} {...register("propertyId")}><option value="three-bedroom">Nevel 3-Bedroom Apartment</option><option value="two-bedroom">Nevel 2-Bedroom Apartment</option></select></Field>
+    <Field id="bedrooms" label="Bedrooms (the whole house remains private)" error={errors.bedrooms}><select id="bedrooms" className={inputClass} aria-invalid={!!errors.bedrooms} {...register("bedrooms", { onChange: (event) => { const choice=options.find((option) => option.bedrooms === Number(event.target.value)) ?? options[2]!; if (Number(guestCount) > choice.maxGuests) setValue("guests", String(choice.maxGuests)); } })}>{options.map((option) => <option value={option.bedrooms} key={option.bedrooms}>{option.label} · KES {option.pricePerNightKES.toLocaleString()} / night</option>)}</select></Field>
     <div className="grid gap-6 sm:grid-cols-2">
       <Field id="phone" label="Phone / WhatsApp" hint="e.g. 0712 345 678" error={errors.phone}><input id="phone" type="tel" inputMode="tel" autoComplete="tel" className={inputClass} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? "phone-error" : undefined} {...register("phone")} /></Field>
       <Field id="email" label="Email" error={errors.email}><input id="email" type="email" autoComplete="email" className={inputClass} aria-invalid={!!errors.email} aria-describedby={errors.email ? "email-error" : undefined} {...register("email")} /></Field>
@@ -174,10 +193,10 @@ export default function EnquiryForm({ whatsappNumber, maxGuests = 6 }: { whatsap
     <div className="grid gap-6 sm:grid-cols-3">
       <Field id="checkIn" label="Check-in" error={errors.checkIn}><input id="checkIn" type="date" min={todayStr} className={inputClass} aria-invalid={!!errors.checkIn} aria-describedby={errors.checkIn ? "checkIn-error" : undefined} {...register("checkIn")} /></Field>
       <Field id="checkOut" label="Check-out" error={errors.checkOut}><input id="checkOut" type="date" min={checkOutMin} className={inputClass} aria-invalid={!!errors.checkOut} aria-describedby={errors.checkOut ? "checkOut-error" : undefined} {...register("checkOut")} /></Field>
-      <Field id="guests" label="Number of guests" error={errors.guests}><input id="guests" type="number" min="1" max={maxGuests} step="1" className={inputClass} aria-invalid={!!errors.guests} aria-describedby={errors.guests ? "guests-error" : undefined} {...register("guests")} /></Field>
+      <Field id="guests" label="Number of guests" hint={`Up to ${selectedMax} guests for this option.`} error={errors.guests}><input id="guests" type="number" min="1" max={selectedMax} step="1" className={inputClass} aria-invalid={!!errors.guests} aria-describedby={errors.guests ? "guests-error" : undefined} {...register("guests", { max: selectedMax })} /></Field>
     </div>
     {unavailable && <p role="status" className="rounded-lg border border-[#dedbd2] bg-white/70 px-4 py-3 text-sm">Those dates look unavailable, message us on WhatsApp to check.</p>}
-    {nights > 0 && <p className="rounded-lg bg-black/5 px-4 py-3 text-sm">Enquiring for {nights} {nights === 1 ? "night" : "nights"}. Nightly rate will be confirmed by the host.</p>}
+    {nights > 0 && <p className="rounded-lg bg-black/5 px-4 py-3 text-sm">Estimated total: KES {estimate.toLocaleString()} for {nights} {nights === 1 ? "night" : "nights"} (KES {selectedOption.pricePerNightKES.toLocaleString()} per night). Price is a placeholder to confirm with the host.</p>}
     <Field id="message" label="Message (optional)" hint={`${message.length}/600`} error={errors.message}><textarea id="message" rows={4} className={`${inputClass} py-3`} aria-invalid={!!errors.message} aria-describedby={errors.message ? "message-error" : undefined} {...register("message")} /></Field>
     <input type="text" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 opacity-0" {...register("botcheck")} />
     <button type="submit" disabled={status === "sending"} className="button button-dark w-full disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit">{status === "sending" ? "Sending..." : "Send enquiry"}</button>

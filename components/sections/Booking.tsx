@@ -10,7 +10,7 @@ export default function Booking({ settings }: { settings: PublicSettings }) {
       <h2 id="booking-heading" tabIndex={-1} className="serif text-[clamp(2.75rem,6vw,5rem)] leading-none">Plan your stay</h2>
       <p className="mt-5 max-w-xl text-sm leading-7 text-[#6f7069]">{`${settings.nightly_price_kes ? `Nightly rates start at KES ${settings.nightly_price_kes.toLocaleString()}. ` : ""}Choose an apartment and send your dates to enquire about availability and the nightly rate. Up to ${settings.max_guests} guests. Check-in ${settings.check_in_time}; check-out ${settings.check_out_time}.`}</p>
       <div className="mt-12 grid gap-12 md:grid-cols-[1.4fr_1fr]">
-        <EnquiryForm whatsappNumber={settings.whatsapp_number} maxGuests={settings.max_guests} />
+        <EnquiryForm whatsappNumber={settings.whatsapp_number} options={settings.bedroom_options} />
         <aside className="h-fit rounded-lg border border-[#dedbd2] p-7 md:p-8">
           <h3 className="serif text-2xl">Contact the host</h3>
           <dl className="mt-6 space-y-5 text-sm">

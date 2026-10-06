@@ -3,8 +3,10 @@
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
-import { properties, property } from "@/data/property";
+import { useReducedMotion } from "framer-motion";
+import { property } from "@/data/property";
 import { buildWhatsAppLink } from "@/lib/contact";
+import { getUniquePhotos, type Room } from "@/lib/photos";
 
 
 export function BookingLink({ children, className = "button button-dark", onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
@@ -31,38 +33,35 @@ export function Navigation() {
 }
 
 export function Reveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  return <motion.div className={className} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1], delay }}>{children}</motion.div>;
-}
-
-export function HouseGrid() {
-  return <div className="mt-14 grid gap-6 md:grid-cols-2">
-    {properties.map((item) => <article key={item.id} className="overflow-hidden rounded-lg border border-[#dedbd2] bg-white/50">
-      <div className="relative aspect-[16/10] bg-[#e7e4dc]">
-        {item.image ? <Image src={item.image} alt={item.imageAlt} fill sizes="(max-width: 767px) 100vw, 50vw" className="object-cover" /> : <div className="flex h-full items-center justify-center"><span className="eyebrow text-[#73736b]">CONTACT US FOR DETAILS</span></div>}
-      </div>
-      <div className="p-6 md:p-8"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="serif text-2xl md:text-3xl">{item.name}</h3><span className="eyebrow text-[#66715b]">{item.status}</span></div><p className="mt-2 text-xs uppercase tracking-[.12em] text-[#73736b]">{item.bedrooms}</p><p className="mt-4 max-w-lg text-sm leading-7 text-[#6f7069]">{item.description}</p>{item.id === "three-bedroom" && <a href="#gallery" className="mt-5 inline-block border-b border-[#a4a296] pb-1 text-xs uppercase tracking-[.12em]">View apartment photos ↗</a>}</div>
-    </article>)}
-  </div>;
+  const reduceMotion = useReducedMotion();
+  return <motion.div className={className} initial={reduceMotion ? false : { opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: reduceMotion ? 0 : 0.65, ease: [0.22, 1, 0.36, 1], delay: reduceMotion ? 0 : delay }}>{children}</motion.div>;
 }
 
 export function PhotoGallery() {
-  const photos = properties.find((item) => item.id === "three-bedroom")?.photos ?? [];
+  const photos = getUniquePhotos();
   const [active, setActive] = useState<number | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [room, setRoom] = useState<Room | "all">("all");
+  const [listing, setListing] = useState<number | "all">("all");
+  const filtered = photos.filter((photo) => (room === "all" || photo.room === room) && (listing === "all" || photo.listings.includes(listing as 1|2|3)));
   const close = useCallback(() => setActive(null), []);
-  const move = useCallback((direction: number) => setActive((current) => current === null || photos.length === 0 ? null : (current + direction + photos.length) % photos.length), [photos.length]);
+  const move = useCallback((direction: number) => setActive((current) => current === null || filtered.length === 0 ? null : (current + direction + filtered.length) % filtered.length), [filtered.length]);
   useEffect(() => {
     if (active === null) return;
-    const keydown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); if (event.key === "ArrowRight") move(1); if (event.key === "ArrowLeft") move(-1); };
+    const previous = document.activeElement as HTMLElement | null;
+    document.querySelector<HTMLElement>(".lightbox-backdrop button")?.focus();
+    const keydown = (event: KeyboardEvent) => { if (event.key === "Escape") close(); if (event.key === "ArrowRight") move(1); if (event.key === "ArrowLeft") move(-1); if(event.key === "Tab"){const controls=[...document.querySelectorAll<HTMLElement>(".lightbox-backdrop button")];const first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus()}} };
     document.addEventListener("keydown", keydown); document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", keydown); document.body.style.overflow = ""; };
+    return () => { document.removeEventListener("keydown", keydown); document.body.style.overflow = ""; previous?.focus(); };
   }, [active, close, move]);
   return <>
-    <div className="photo-gallery mt-12 columns-2 gap-3 md:columns-3 md:gap-5">{photos.map((photo, i) => <button key={photo.src} aria-label={`Open image: ${photo.alt}`} onClick={() => setActive(i)} className="photo mb-3 block w-full break-inside-avoid text-left md:mb-5"><Image src={photo.src} alt={photo.alt} width={photo.src.includes("kitchen-detail") ? 1000 : photo.src.includes("apartment") ? 1280 : 1500} height={photo.src.includes("kitchen-detail") ? 1500 : photo.src.includes("apartment") ? 854 : 1000} loading="lazy" sizes="(max-width: 767px) 50vw, 33vw" /></button>)}</div>
-    <AnimatePresence>{active !== null && photos[active] && <motion.div className="lightbox-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true" aria-label="Photo gallery" onClick={close} onTouchStart={(e) => setTouchStart(e.touches[0].clientX)} onTouchEnd={(e) => { if (touchStart !== null && Math.abs(e.changedTouches[0].clientX - touchStart) > 45) move(e.changedTouches[0].clientX < touchStart ? 1 : -1); setTouchStart(null); }}>
+    <div className="mt-8 flex flex-wrap gap-2"><button className="filter-pill" aria-pressed={room === "all"} onClick={() => {setRoom("all");setActive(null)}}>All rooms</button>{(["living","bedroom","kitchen","bathroom","exterior","other"] as Room[]).filter((value)=>photos.some((photo)=>photo.room===value)).map((value)=><button className="filter-pill" key={value} aria-pressed={room===value} onClick={()=>{setRoom(value);setActive(null)}}>{value === "bathroom" ? "Bathroom" : value[0]!.toUpperCase()+value.slice(1)}</button>)}</div>
+    <div className="mt-3 flex items-center gap-3"><label htmlFor="gallery-listing" className="text-xs">By stay option</label><select id="gallery-listing" className="rounded border border-[#dedbd2] bg-white px-3 py-2 text-sm" value={listing} onChange={(event)=>{setListing(event.target.value === "all" ? "all" : Number(event.target.value));setActive(null)}}><option value="all">All stay options</option><option value="1">1 bedroom</option><option value="2">2 bedrooms</option><option value="3">Entire house</option></select></div>
+    <div className="photo-gallery mt-6 columns-2 gap-3 md:columns-3 md:gap-5">{filtered.map((photo, i) => <button key={photo.src} aria-label={`Open image: ${photo.alt}`} onClick={() => setActive(i)} className="photo mb-3 block w-full break-inside-avoid text-left md:mb-5"><Image src={photo.src} alt={photo.alt} width={photo.width} height={photo.height} loading="lazy" sizes="(max-width: 767px) 50vw, 33vw" /></button>)}</div>
+    <AnimatePresence>{active !== null && filtered[active] && <motion.div className="lightbox-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true" aria-label="Photo gallery" onClick={close} onTouchStart={(e) => setTouchStart(e.touches[0].clientX)} onTouchEnd={(e) => { if (touchStart !== null && Math.abs(e.changedTouches[0].clientX - touchStart) > 45) move(e.changedTouches[0].clientX < touchStart ? 1 : -1); setTouchStart(null); }}>
       <button onClick={close} aria-label="Close gallery" className="absolute right-5 top-5 z-10 grid h-12 w-12 place-items-center text-3xl text-white">×</button>
       <button onClick={(e) => { e.stopPropagation(); move(-1); }} aria-label="Previous image" className="absolute left-2 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center text-3xl text-white md:left-8">‹</button>
-      <figure className="relative flex h-full w-full max-w-6xl flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}><div className="relative h-[78vh] w-full"><Image src={photos[active].src} alt={photos[active].alt} fill sizes="100vw" className="object-contain" priority /></div><figcaption className="mt-4 text-xs tracking-wide text-white/75">{photos[active].alt} <span className="ml-3">{active + 1} / {photos.length}</span></figcaption></figure>
+      <figure className="relative flex h-full w-full max-w-6xl flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}><div className="relative h-[78vh] w-full"><Image src={filtered[active].src} alt={filtered[active].alt} fill sizes="100vw" className="object-contain" priority /></div><figcaption className="mt-4 text-xs tracking-wide text-white/75">{filtered[active].alt} <span className="ml-3">{active + 1} / {filtered.length}</span></figcaption></figure>
       <button onClick={(e) => { e.stopPropagation(); move(1); }} aria-label="Next image" className="absolute right-2 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center text-3xl text-white md:right-8">›</button>
     </motion.div>}</AnimatePresence>
   </>;

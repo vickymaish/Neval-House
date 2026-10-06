@@ -22,5 +22,7 @@ body{margin:0;background:var(--ivory);color:var(--ink);font-family:'Inter',Arial
 .reveal{opacity:0;transform:translateY(18px)}
 .faq-row{border-top:1px solid var(--line)}.faq-row:last-child{border-bottom:1px solid var(--line)}
 .lightbox-backdrop{background:rgba(17,18,16,.96)}
+.skip-link{position:fixed;z-index:100;top:8px;left:8px;padding:12px 16px;background:var(--ivory);color:var(--ink);transform:translateY(-150%)}.skip-link:focus{transform:translateY(0)}
+.filter-pill{min-height:40px;border:1px solid var(--line);border-radius:999px;padding:0 14px;font-size:11px}.filter-pill[aria-pressed=true]{background:var(--olive);border-color:var(--olive);color:white}
 @media(max-width:767px){.wrap{width:min(100% - 40px,1200px)}.section-pad{padding-block:72px}.house-grid{gap:10px}.photo-gallery{column-gap:10px}.photo-gallery .photo{margin-bottom:10px;border-radius:6px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition-duration:.01ms!important;animation-duration:.01ms!important}}

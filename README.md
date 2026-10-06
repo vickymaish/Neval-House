@@ -1,5 +1,19 @@
 # Nevel Apartment
 
+## Project structure and final pass
+
+- `app/` contains the public page, metadata routes, and private `/admin` dashboard.
+- `components/` contains the photo gallery, stay cards, booking form, and shared sections.
+- `data/site.ts` contains bedroom options and the hero source/crop; `data/photos.ts` is generated from the files in `public/images`.
+- `lib/photos.ts` provides photo selectors. Run `node scripts/audit-images.mjs` to print image dimensions and SHA-256 hashes.
+- To replace a photo, add it to `public/images`, update its entry in `data/photos.ts`, and keep recorded dimensions accurate. To change the hero, set `heroImage` in `data/site.ts` to an existing photo source; adjust desktop/mobile `heroObjectPosition` there.
+- Edit page wording in `data/property.ts` and bedroom defaults in `data/site.ts`. Prices and guest limits can also be edited in `/admin/settings`.
+- Set `NEXT_PUBLIC_WEB3FORMS_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SITE_URL` in `.env.local` (or the deployment environment). Do not commit `.env.local` or use a service role key.
+
+Apply `supabase/migrations/202610060001_add_enquiry_bedrooms.sql` to add/validate `enquiries.bedrooms` (1–3). Existing dashboard tables and RLS policies remain required as described below.
+
+Bedroom prices and guest limits currently use placeholder values. Confirm them, the address/nearby places, map pin, amenities, house rules, payment details, cancellation policy, Wi-Fi, and parking before publishing.
+
 ## Environment
 
 Copy `.env.example` to `.env.local` and set:
@@ -51,7 +65,7 @@ To verify anon users cannot read enquiries, use Supabase SQL Editor or a local s
 
 ```ts
 const { data, error } = await supabase.from("enquiries").select("id");
-console.log({ data, error });
+Inspect `data` and `error` in the local debugger.
 ```
 
 The anonymous query must be denied by RLS (or return no rows, depending on the policy behavior); it must not reveal enquiry records. In the same anon session, verify that `blocked_dates` and `site_settings` can be selected, and that a valid enquiry insert succeeds. Then sign in through `/admin/login` and verify that the owner can list, update, and delete enquiries and manage blocked dates and settings. Do not relax the anonymous `SELECT` policy on `enquiries` to make public clash checks work.

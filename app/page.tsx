@@ -13,7 +13,7 @@ export default async function Home() {
   const settings = await getPublicSettings();
   const hero = getHero(heroImage);
   const canonicalBase = process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.com"; // TODO: set the live canonical site URL.
-  const jsonLd = { "@context":"https://schema.org", "@type":["VacationRental","LodgingBusiness"], name:"Nevel Apartment · House C8", telephone:"+254727416611", email:"victormureithi957@gmail.com", address:{"@type":"PostalAddress", addressLocality:"Eldoret", addressCountry:"KE", streetAddress:"TODO: add verified address"}, image:`${canonicalBase}${hero.src}`, priceRange:"TODO: confirm nightly prices" };
+  const jsonLd = { "@context":"https://schema.org", "@type":["VacationRental","LodgingBusiness"], name:"Nevel Apartment · House C8", telephone:siteConfig.whatsappDisplay, email:siteConfig.ownerEmail, address:{"@type":"PostalAddress", addressLocality:"Eldoret", addressCountry:"KE", streetAddress:"TODO: add verified address"}, image:`${canonicalBase}${hero.src}`, priceRange:"TODO: confirm nightly prices" };
   return <main id="top">
     <a href="#main-content" className="skip-link">Skip to content</a>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />

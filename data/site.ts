@@ -3,9 +3,9 @@ import type { photos } from "./photos";
 export const siteConfig = {
   propertyName: "Nevel Apartments",
   location: "Eldoret, Kenya",
-  ownerEmail: "victormureithi957@gmail.com",
-  whatsappNumber: "254727416611",
-  whatsappDisplay: "+254 727 416 611",
+  ownerEmail: "64holidayhomesandbnb@gmail.com",
+  whatsappNumber: "254711884316",
+  whatsappDisplay: "+254 711 884 316",
 } as const;
 
 export const bedroomOptions = [
